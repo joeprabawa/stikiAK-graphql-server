@@ -11,7 +11,8 @@ module.exports = gql`
     background: String
     statMenikah: String
     statKerja: String
-    khs: [Semester]
+    khs(semester: Int): [Semester]
+    ipk: Float
   }
 
   type Semester {

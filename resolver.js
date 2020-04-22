@@ -1,4 +1,5 @@
 const knex = require("./knexInit");
+
 module.exports = {
   Query: {
     mahasiswa: async (_parent, args, _ctx, info) => {
@@ -53,13 +54,16 @@ module.exports = {
     },
   },
   Mahasiswa: {
-    khs: async (parent, _, _ctx, info) => {
+    khs: async (parent, args, _ctx, info) => {
       info.cacheControl.setCacheHint({ maxAge: 240, scope: "PRIVATE" });
       const aliasRow = await knex.raw(
-        `select d.nim, d.kdmk, d.ntot, d.na, d.prak+d.teori as sks, (select mk.matkul from mk where kdmk = d.kdmk) as nama ,(select mk.smtr from mk where kdmk = d.kdmk) as semester from nilai d where  d.nim =?`,
+        `select d.nim, d.kdmk, d.ntot, d.na, d.prak+d.teori as sks, (select mk.matkul from mk where kdmk = d.kdmk) as nama, (select mk.smtr from mk where kdmk = d.kdmk ) as semester from nilai d where d.nim =?`,
         [parent.nim]
       );
-      const data = aliasRow[0].filter((v) => v.semester <= 4);
+
+      const data = aliasRow[0].filter((v) => {
+        return args.semester ? v.semester <= args.semester : v.semester <= 4;
+      });
       const result = data.map((v) => {
         return {
           kodeMK: v.kdmk.trim(),
@@ -72,17 +76,17 @@ module.exports = {
           jumlahSKS: v.sks,
         };
       });
+
       const reducing = result.reduce((acc, val) => {
         !acc[val.semester]
           ? (acc[val.semester] = { semester: val.semester, data: [] })
           : acc[val.semester].data.push(val);
         return acc;
       }, {});
-      let arr = [];
-      for (let [_, value] of Object.entries(reducing)) {
-        arr.push(value);
-      }
-      return arr.map((v) => {
+      const reduced = Object.entries(reducing).reduce((acc, val) => {
+        return acc.concat(val[1]);
+      }, []);
+      const resolved = reduced.map((v) => {
         const { data } = v;
         let jumlahSKS = 0;
         let nilaiTotal = 0;
@@ -97,6 +101,18 @@ module.exports = {
           indeksSemester: ips || null,
         };
       });
+      return resolved;
+    },
+
+    ipk: async (parent, _, { loader }, info) => {
+      info.cacheControl.setCacheHint({ maxAge: 240, scope: "PRIVATE" });
+      return loader.ipk.load(parent.nim);
+      // const searchIPK = await knex.raw(
+      //   `SELECT d.nim, (SELECT SUM((teori+prak)*na)/SUM(teori+prak) FROM nilai WHERE nim=d.nim) AS IPK FROM du d WHERE d.nim=?`,
+      //   [parent.nim]
+      // );
+      // const found = searchIPK[0].find((v) => v.nim === parent.nim);
+      // return found.IPK;
     },
   },
 };
