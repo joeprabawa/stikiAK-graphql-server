@@ -13,12 +13,12 @@ module.exports = {
     },
   },
   Mahasiswa: {
-    khs: async (parent, args, _, info) => {
+    khs: async ({ nim }, args, { loader }, info) => {
       info.cacheControl.setCacheHint({ maxAge: 240, scope: "PRIVATE" });
-      const resolved = await getKHS(parent, args);
+      const load = await loader.khs.load(nim);
+      const resolved = await getKHS(load, args);
       return resolved;
     },
-
     ipk: async ({ nim }, _, { loader }, info) => {
       info.cacheControl.setCacheHint({ maxAge: 240, scope: "PRIVATE" });
       const load = await loader.ipk.load(nim);

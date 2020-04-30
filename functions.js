@@ -1,27 +1,23 @@
 const knex = require("./knexInit");
 
-async function getKHS(parent, args) {
-  const aliasRow = await knex.raw(
-    `select d.nim, d.kdmk, d.ntot, d.na, d.prak+d.teori as sks, (select mk.matkul from mk where kdmk = d.kdmk) as nama, (select mk.smtr from mk where kdmk = d.kdmk ) as semester from nilai d where d.nim =?`,
-    [parent.nim]
-  );
-
-  const data = aliasRow[0].filter((v) => {
-    return args.semester ? v.semester <= args.semester : v.semester <= 4;
-  });
-
-  const result = data.map((v) => {
-    return {
-      kodeMK: v.kdmk.trim(),
-      nilaiReg: v.ntot,
-      namaMatkul: () => {
-        if (v.nama) return v.nama.trim();
-      },
-      semester: v.semester,
-      nilaiSKS: v.na,
-      jumlahSKS: v.sks,
-    };
-  });
+async function getKHS(loader, args) {
+  const result = !loader
+    ? []
+    : loader
+        .filter((v) => v.semester <= args.semester)
+        .map((v) => {
+          return {
+            nim: v.nim,
+            kodeMK: () => (v.kdmk ? v.kdmk.trim() : null),
+            nilaiReg: v.ntot,
+            namaMatkul: () => {
+              if (v.nama) return v.nama.trim();
+            },
+            semester: v.semester,
+            nilaiSKS: v.na,
+            jumlahSKS: v.sks,
+          };
+        });
 
   const reducing = result.reduce((acc, val) => {
     !acc[val.semester]
@@ -49,6 +45,7 @@ async function getKHS(parent, args) {
       indeksSemester: ips || null,
     };
   });
+
   return resolved;
 }
 
@@ -57,12 +54,12 @@ async function getMahasiswas(args) {
     .select()
     .from("du")
     .where(
-      args.angkatan
+      args.jurusan
         ? { kdjur: args.jurusan, thnaka: args.angkatan }
-        : { kdjur: args.jurusan }
+        : { thnaka: args.angkatan }
     )
-    .limit(args.limit)
-    .offset(args.offset);
+    .limit(args.limit);
+
   const results = data;
   return results.map((v, i) => {
     return {
