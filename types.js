@@ -5,6 +5,7 @@ module.exports = gql`
     nim: ID
     nama: String
     ttl: String
+    gender: String
     kota: String
     jurusan: String
     angkatan: String
@@ -12,9 +13,13 @@ module.exports = gql`
     statMenikah: String
     statKerja: String
     khs(semester: Int): [Semester]
-    ipk: Float
+    ipk: IPK
   }
 
+  type IPK {
+    nilai: Float
+    totalSKS: Int
+  }
   type Semester {
     semester: Int
     totalSKS: Int

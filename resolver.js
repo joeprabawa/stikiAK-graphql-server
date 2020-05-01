@@ -16,13 +16,13 @@ module.exports = {
     khs: async ({ nim }, args, { loader }, info) => {
       info.cacheControl.setCacheHint({ maxAge: 240, scope: "PRIVATE" });
       const load = await loader.khs.load(nim);
-      const resolved = await getKHS(load, args);
+      const resolved = await getKHS(load, args, nim);
       return resolved;
     },
     ipk: async ({ nim }, _, { loader }, info) => {
       info.cacheControl.setCacheHint({ maxAge: 240, scope: "PRIVATE" });
       const load = await loader.ipk.load(nim);
-      return load.IPK;
+      return { nilai: load.IPK, totalSKS: load.totalSKS };
     },
   },
 };

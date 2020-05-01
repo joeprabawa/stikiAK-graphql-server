@@ -1,10 +1,9 @@
 const knex = require("./knexInit");
 
-async function getKHS(loader, args) {
-  const result = !loader
-    ? []
-    : loader
-        .filter((v) => v.semester <= args.semester)
+async function getKHS(loader, { semester }, nim) {
+  const result = loader
+    ? loader
+        .filter((v) => (semester ? v.semester <= semester : v.semester <= 4))
         .map((v) => {
           return {
             nim: v.nim,
@@ -17,7 +16,8 @@ async function getKHS(loader, args) {
             nilaiSKS: v.na,
             jumlahSKS: v.sks,
           };
-        });
+        })
+    : [];
 
   const reducing = result.reduce((acc, val) => {
     !acc[val.semester]
@@ -50,9 +50,8 @@ async function getKHS(loader, args) {
 }
 
 async function getMahasiswas(args) {
-  const data = await knex
+  const data = await knex("du")
     .select()
-    .from("du")
     .where(
       args.jurusan
         ? { kdjur: args.jurusan, thnaka: args.angkatan }
@@ -67,6 +66,7 @@ async function getMahasiswas(args) {
       nim: v.nim,
       nama: v.nama.trim(),
       kota: v.kota.trim(),
+      gender: v.jkel === 1 ? "Laki-Laki" : "Perempuan",
       ttl:
         v.tmplahir.toString() !== ""
           ? `${v.tmplahir.trim()}, ${v.tgllahir.toDateString()}`

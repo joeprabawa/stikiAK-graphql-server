@@ -5,6 +5,7 @@ const knex = require("knex")({
     user: "root",
     password: "",
     database: "stiki",
+    debug: ["ComQueryPacket"],
   },
 });
 module.exports = knex;

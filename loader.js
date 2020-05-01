@@ -3,12 +3,16 @@ const knex = require("./knexInit");
 
 const loader = {
   khs: new DataLoader(async (nim) => {
-    const aliasRow = await knex.raw(
-      `select d.nim, d.kdmk, d.ntot, d.na, d.prak+d.teori as sks, (select mk.matkul from mk where kdmk = d.kdmk) as nama, (select mk.smtr from mk where kdmk = d.kdmk ) as semester from nilai d where d.nim in ?`,
-      [[nim]]
-    );
-    const rows = aliasRow[0];
-    const lookup = rows.reduce((acc, val) => {
+    const query = await knex
+      .select("d.nim", "d.kdmk", "d.ntot", "d.na", {
+        sks: knex.raw("d.prak+d.teori"),
+        nama: knex("mk").select("mk.matkul").where(knex.raw("kdmk = d.kdmk")),
+        semester: knex("mk").select("mk.smtr").where(knex.raw("kdmk = d.kdmk")),
+      })
+      .from({ d: "nilai" })
+      .whereIn("d.nim", nim);
+
+    const lookup = query.reduce((acc, val) => {
       const { nim } = val;
       const trimmed = nim.trim();
       !acc[trimmed]
@@ -20,11 +24,19 @@ const loader = {
     return mapped;
   }),
   ipk: new DataLoader(async (nim) => {
-    const searchIPK = await knex.raw(
-      `select d.nim, (select sum((teori+prak)*na)/sum(teori+prak) from nilai where nim=d.nim) AS IPK FROM du d WHERE d.nim in ?`,
-      [[nim]]
-    );
-    const lookup = searchIPK[0].reduce((acc, val) => {
+    const query = await knex({ d: "du" })
+      .select("nim", {
+        IPK: knex("nilai")
+          .select(knex.raw("sum((teori+prak)*na)/sum(teori+prak)"))
+          .where(knex.raw("nim=d.nim")),
+
+        totalSKS: knex("nilai")
+          .select(knex.raw("sum(teori+prak)"))
+          .where(knex.raw("nim=d.nim")),
+      })
+      .whereIn("d.nim", nim);
+
+    const lookup = query.reduce((acc, val) => {
       acc[val.nim] = val;
       return acc;
     }, {});
